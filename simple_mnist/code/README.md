@@ -41,7 +41,7 @@ docker run -it
             -v $SERVICE_ACCOUNT_FOLDER:/config
             -e GOOGLE_APPLICATION_CREDENTIALS=/config/${SERVICE_ACCOUNT_FILE}
             gcr.io/${PROJECT}/${CONTAINER_NAME}
-            --training_images ${TRAINING_IMAGE_FILE}
+            --training_images ${TRAINING_IMAGES_FILE}
             --training_labels ${TRAINING_LABELS_FILE}
             --test_images ${TEST_IMAGES_FILE}
             --test_labels ${TEST_LABELS_FILE}
