@@ -4,7 +4,9 @@ The python code in this directory trains a model using the MNIST dataset. There 
 #### Setup
 1. Download the training and test files from [here](http://yann.lecun.com/exdb/mnist/). You may upload a copy of these files to a GCS bucket.
 
-2. Set the following environment variables:
+2. Create and download a service account with at least the `Storage Object Admin` role. You can do it by visting the [GCP website](https://pantheon.corp.google.com/iam-admin/serviceaccounts).
+
+3. Set the following environment variables:
 
 ```bash
 PROJECT=<your gcp project>
@@ -17,12 +19,10 @@ TEST_IMAGES_FILE=<GCS path to the test images file, e.g. gs://mnist-bucket/test-
 TEST_LABELS_FILE=<GCS path to the test labels file, e.g. gs://mnist-bucket/test-files>
 ```
 
-3. Activate your project
+4. Activate your project
 ```bash
 gcloud config set project $PROJECT
 ```
-
-4. Create and download a service account with at least the `Storage Object Admin` role. You can do it by visting the [GCP website](https://pantheon.corp.google.com/iam-admin/serviceaccounts).
 
 5. Build the docker container:
 
