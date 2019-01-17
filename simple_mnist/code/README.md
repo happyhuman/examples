@@ -2,9 +2,9 @@
 The python code in this directory trains a model using the MNIST dataset. There is also a Dockerfile to build a container for the code and run it as a docker container.
 
 #### Setup
-1. Download the training and test files from [here]([http://yann.lecun.com/exdb/mnist/). The test files are optional for training a model.
+1. Download the training and test files from [here]([http://yann.lecun.com/exdb/mnist/).
 
-2. Create and download a service account with at least the `Storage Object Admin` role.
+2. Create and download a service account with at least the `Storage Object Admin` role. You can do it by visting the [GCP website](https://pantheon.corp.google.com).
 
 3. Set the following environment variables:
 
@@ -32,20 +32,17 @@ docker build . -t gcr.io/${PROJECT}/${CONTAINER_NAME}
 docker push gcr.io/${PROJECT}/${CONTAINER_NAME}
 ```
 
-#### Running the Code
+#### Running the Docker container
 
-Once the container is created and pushed to GCR, we can run it to train a model for MNIST. The environment variables for testing (`TEST_IMAGES_FILE` and `TEST_LABELS_FILE`) are optional in the following command, and you may remove them:
+Once the container is created and pushed to GCR, we can run it to train a model for MNIST.
 
 ```
 docker run -it
-            -v $SERVICE_ACCOUNT_FOLDER:/config
-            -e GOOGLE_APPLICATION_CREDENTIALS=/config/${SERVICE_ACCOUNT_FILE}
-            gcr.io/${PROJECT}/${CONTAINER_NAME}
-            --training_images ${TRAINING_IMAGES_FILE}
-            --training_labels ${TRAINING_LABELS_FILE}
-            --test_images ${TEST_IMAGES_FILE}
-            --test_labels ${TEST_LABELS_FILE}
-            --model ${OUTPUT_MODEL}
-            --epochs 2
-            --batch 128
+           -v $SERVICE_ACCOUNT_FOLDER:/config
+           -e GOOGLE_APPLICATION_CREDENTIALS=/config/${SERVICE_ACCOUNT_FILE}
+           -e TRAINING_IMAGES_FILE ${TRAINING_IMAGES_FILE}
+           -e TRAINING_LABELS_FILE ${TRAINING_LABELS_FILE}
+           -e TEST_IMAGES_FILE ${TEST_IMAGES_FILE}
+           -e TEST_LABELS_FILE ${TEST_LABELS_FILE}
+           gcr.io/${PROJECT}/${CONTAINER_NAME}
 ```
