@@ -23,16 +23,13 @@ from __future__ import print_function
 
 import json
 import os
-import sys
 import numpy as np
 import tensorflow as tf
 
 # Configure model options
-# TODO(jlewi): Why environment variables and not command line arguments?
 TF_DATA_DIR = os.getenv("TF_DATA_DIR", "/tmp/data/")
 TF_MODEL_DIR = os.getenv("TF_MODEL_DIR", None)
 TF_EXPORT_DIR = os.getenv("TF_EXPORT_DIR", "mnist/")
-TF_MODEL_TYPE = os.getenv("TF_MODEL_TYPE", "CNN")
 TF_TRAIN_STEPS = int(os.getenv("TF_TRAIN_STEPS", 200))
 TF_BATCH_SIZE = int(os.getenv("TF_BATCH_SIZE", 100))
 TF_LEARNING_RATE = float(os.getenv("TF_LEARNING_RATE", 0.01))
@@ -119,11 +116,6 @@ def cnn_serving_input_receiver_fn():
   return tf.estimator.export.ServingInputReceiver(inputs, inputs)
 
 
-def linear_serving_input_receiver_fn():
-  inputs = {X_FEATURE: tf.placeholder(tf.float32, (784,))}
-  return tf.estimator.export.ServingInputReceiver(inputs, inputs)
-
-
 def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -131,17 +123,8 @@ def main(_):
   tf.logging.info("TF_CONFIG %s", tf_config)
   tf_config_json = json.loads(tf_config)
   cluster = tf_config_json.get('cluster')
-  job_name = tf_config_json.get('task', {}).get('type')
   task_index = tf_config_json.get('task', {}).get('index')
-  tf.logging.info("cluster=%s job_name=%s task_index=%s", cluster, job_name,
-                  task_index)
-
-  is_chief = False
-  if not job_name or job_name.lower() in ["chief", "master"]:
-    is_chief = True
-    tf.logging.info("Will export model")
-  else:
-    tf.logging.info("Will not export model")
+  tf.logging.info("cluster=%s task_index=%s", cluster, task_index)
 
   # Download and load MNIST dataset.
   mnist = tf.contrib.learn.datasets.DATASETS['mnist'](TF_DATA_DIR)
@@ -160,29 +143,12 @@ def main(_):
   training_config = tf.estimator.RunConfig(
       model_dir=TF_MODEL_DIR, save_summary_steps=100, save_checkpoints_steps=1000)
 
-  if TF_MODEL_TYPE == "LINEAR":
-    # Linear classifier.
-    feature_columns = [
-        tf.feature_column.numeric_column(
-            X_FEATURE, shape=mnist.train.images.shape[1:])]
-    classifier = tf.estimator.LinearClassifier(
-        feature_columns=feature_columns, n_classes=N_DIGITS,
-        model_dir=TF_MODEL_DIR, config=training_config)
-    # TODO(jlewi): Should it be linear_serving_input_receiver_fn here?
-    serving_fn = cnn_serving_input_receiver_fn
-    export_final = tf.estimator.FinalExporter(
-        TF_EXPORT_DIR, serving_input_receiver_fn=cnn_serving_input_receiver_fn)
-
-  elif TF_MODEL_TYPE == "CNN":
-    # Convolutional network
-    classifier = tf.estimator.Estimator(
-        model_fn=conv_model, model_dir=TF_MODEL_DIR, config=training_config)
-    serving_fn = cnn_serving_input_receiver_fn
-    export_final = tf.estimator.FinalExporter(
-        TF_EXPORT_DIR, serving_input_receiver_fn=cnn_serving_input_receiver_fn)
-  else:
-    print("No such model type: %s" % TF_MODEL_TYPE)
-    sys.exit(1)
+  # Convolutional network
+  classifier = tf.estimator.Estimator(
+      model_fn=conv_model, model_dir=TF_MODEL_DIR, config=training_config)
+  serving_fn = cnn_serving_input_receiver_fn
+  export_final = tf.estimator.FinalExporter(
+      TF_EXPORT_DIR, serving_input_receiver_fn=cnn_serving_input_receiver_fn)
 
   train_spec = tf.estimator.TrainSpec(
         input_fn=train_input_fn, max_steps=TF_TRAIN_STEPS)
@@ -191,14 +157,15 @@ def main(_):
                                       exporters=export_final,
                                       throttle_secs=1,
                                       start_delay_secs=1)
+
   print("Train and evaluate")
   tf.estimator.train_and_evaluate(classifier, train_spec, eval_spec)
   print("Training done")
 
-  if is_chief:
-    print("Export saved model")
-    classifier.export_savedmodel(TF_EXPORT_DIR, serving_input_receiver_fn=serving_fn)
-    print("Done exporting the model")
+  print("Export saved model")
+  classifier.export_savedmodel(TF_EXPORT_DIR, serving_input_receiver_fn=serving_fn)
+  print("Done exporting the model")
+
 
 if __name__ == '__main__':
   tf.app.run()
